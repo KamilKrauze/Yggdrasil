@@ -1,4 +1,4 @@
-package yggdrasil
+package framework
 
 SparseSet :: struct($ComponentT : typeid)
 {
