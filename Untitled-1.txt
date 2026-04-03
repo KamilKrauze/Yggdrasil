@@ -1,0 +1,113 @@
+#include <iostream>
+#include <vector>
+#include <cstdint>
+#include <cassert>
+
+// --------------------
+// Entity
+// --------------------
+using Entity = uint32_t;
+static Entity nextEntity = 0;
+
+Entity CreateEntity() {
+    return nextEntity++;
+}
+
+// --------------------
+// Sparse Set Storage
+// --------------------
+template<typename T>
+class SparseSet {
+public:
+    void Add(Entity e, const T& component) {
+        if (e >= sparse.size()) {
+            sparse.resize(e + 1, INVALID);
+        }
+
+        sparse[e] = dense.size();
+        dense.push_back(e);
+        data.push_back(component);
+    }
+
+    bool Has(Entity e) const {
+        return e < sparse.size() && sparse[e] != INVALID;
+    }
+
+    T& Get(Entity e) {
+        assert(Has(e));
+        return data[sparse[e]];
+    }
+
+    size_t Size() const {
+        return dense.size();
+    }
+
+    Entity GetEntity(size_t index) const {
+        return dense[index];
+    }
+
+    T& GetByIndex(size_t index) {
+        return data[index];
+    }
+
+private:
+    static constexpr uint32_t INVALID = UINT32_MAX;
+
+    std::vector<Entity> dense;   // contiguous entity list
+    std::vector<T> data;         // contiguous components
+    std::vector<uint32_t> sparse;// entity → dense index
+};
+
+// --------------------
+// Components
+// --------------------
+struct Position {
+    float x, y;
+};
+
+struct Velocity {
+    float dx, dy;
+};
+
+// --------------------
+// System (cache-friendly iteration)
+// --------------------
+void MovementSystem(SparseSet<Position>& positions,
+                    SparseSet<Velocity>& velocities)
+{
+    // Iterate over the SMALLER set for better performance
+    for (size_t i = 0; i < positions.Size(); ++i) {
+        Entity e = positions.GetEntity(i);
+
+        if (velocities.Has(e)) {
+            auto& pos = positions.GetByIndex(i);
+            auto& vel = velocities.Get(e);
+
+            pos.x += vel.dx;
+            pos.y += vel.dy;
+        }
+    }
+}
+
+// --------------------
+// Main
+// --------------------
+int main() {
+    SparseSet<Position> positions;
+    SparseSet<Velocity> velocities;
+
+    Entity e = CreateEntity();
+
+    positions.Add(e, {0.0f, 0.0f});
+    velocities.Add(e, {1.0f, 0.5f});
+
+    for (int i = 0; i < 5; ++i) {
+        MovementSystem(positions, velocities);
+
+        auto& pos = positions.Get(e);
+        std::cout << "Entity " << e
+                  << " Position: (" << pos.x << ", " << pos.y << ")\n";
+    }
+
+    return 0;
+}
