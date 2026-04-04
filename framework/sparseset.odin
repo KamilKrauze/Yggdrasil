@@ -47,7 +47,7 @@ cleanup :: proc($ComponentT:typeid, dataset: ^SparseSet(ComponentT))
 
 has_entity :: proc($T:typeid, dataset:^SparseSet(T), e:Entity) -> bool
 {
-    return e < u32(len(dataset.sparse)) && dataset.sparse[e] != INVALID;
+    return e < u64(len(dataset.sparse)) && dataset.sparse[e] != INVALID;
 }
 
 get_entity :: proc($T:typeid, dataset:^SparseSet(T), index: int) -> Entity
